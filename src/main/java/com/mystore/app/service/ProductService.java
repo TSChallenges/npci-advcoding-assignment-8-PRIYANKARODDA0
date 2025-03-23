@@ -3,6 +3,8 @@ package com.mystore.app.service;
 import com.mystore.app.entity.Product;
 import com.mystore.app.repositories.ProductRepository;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
@@ -28,12 +30,14 @@ public class ProductService {
 
     public Product getProduct(Integer id) {
         Optional<Product> productOptional = productRepository.findById(id);
-        return productOptional.get();
+        return productOptional.orElse(null);  // Return null if the product doesn't exist
     }
 
     public Product updateProduct(Integer id, Product product) {
-        Product p = productRepository.findById(id).get();
-        if (p == null) return null;
+        Optional<Product> existingProduct = productRepository.findById(id);
+        if (existingProduct.isEmpty()) return null;
+
+        Product p = existingProduct.get();
         p.setName(product.getName());
         p.setPrice(product.getPrice());
         p.setCategory(product.getCategory());
@@ -43,22 +47,34 @@ public class ProductService {
     }
 
     public String deleteProduct(Integer id) {
-        Product p = productRepository.findById(id).get();
-        if (p == null) return "Product Not Found";
-        productRepository.delete(p);
+        Optional<Product> p = productRepository.findById(id);
+        if (p.isEmpty()) return "Product Not Found";
+        productRepository.delete(p.get());
         return "Product Deleted Successfully";
     }
 
-    // TODO: Method to search products by name
+    // Search products by name (case-insensitive)
+    public List<Product> searchProductsByName(String name) {
+        return productRepository.findByNameIgnoreCaseContaining(name);
+    }
 
+    // Filter products by category
+    public List<Product> filterProductsByCategory(String category) {
+        return productRepository.findByCategory(category);
+    }
 
-    // TODO: Method to filter products by category
+    // Filter products by price range
+    public List<Product> filterProductsByPriceRange(Double minPrice, Double maxPrice) {
+        return productRepository.findByPriceBetween(minPrice, maxPrice);
+    }
 
+    // Filter products by stock quantity range
+    public List<Product> filterProductsByStockRange(Integer minStock, Integer maxStock) {
+        return productRepository.findByStockQuantityBetween(minStock, maxStock);
+    }
 
-    // TODO: Method to filter products by price range
-
-
-    // TODO: Method to filter products by stock quantity range
-
-
+    // Pagination and Sorting (provided in controller, but we can leave this here as well)
+    public Page<Product> getProducts(Pageable pageable) {
+        return productRepository.findAll(pageable);
+    }
 }
